@@ -1,4 +1,4 @@
--- The 3am Room: database setup.
+-- The 10pm Room: database setup.
 -- Paste this whole file into the Supabase SQL editor and press Run.
 -- It's safe to run again later; it replaces the functions and policies each time.
 --
@@ -7,10 +7,10 @@
 
 
 -- When the door opens (UK wall-clock time) and for how long.
--- To test at another time of day, change '03:00' here, re-run just this
+-- To test at another time of day, change '22:00' here, re-run just this
 -- function, then change it back afterwards.
 create or replace function public.door_open_time()
-returns time language sql immutable as $$ select time '03:00' $$;
+returns time language sql immutable as $$ select time '22:00' $$;
 
 create or replace function public.door_length()
 returns interval language sql immutable as $$ select interval '15 minutes' $$;

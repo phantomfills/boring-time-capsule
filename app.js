@@ -108,11 +108,11 @@ function setState(next) {
     pollTimer = null;
     $("aftermath").hidden = prev !== "open";
     $("yours").textContent = yourTime(status.opensAt);
-    document.title = "The 3am Room (closed)";
+    document.title = "The 10pm Room (closed)";
   }
 
   if (next === "open" && prev !== "open") {
-    document.title = "The 3am Room is open";
+    document.title = "The 10pm Room is open";
     updateForm();
     loadNotes();
     pollTimer = setInterval(loadNotes, POLL_MS);
@@ -207,7 +207,7 @@ function fillList(list, rows) {
 
 // One note per visitor per night. It's an honour system kept in this browser;
 // the server's own limits are in supabase/schema.sql.
-const postedKey = () => `three-am:posted:${status.night}`;
+const postedKey = () => `ten-pm:posted:${status.night}`;
 
 function alreadyPosted() {
   try { return localStorage.getItem(postedKey()) !== null; } catch { return false; }
@@ -305,22 +305,22 @@ function makePreviewNotes() {
   const now = Date.now();
   const today = londonDate.format(now);
   const yesterday = londonDate.format(now - 86_400_000);
-  // Made-up times between 3:00 and 3:15am UK time, so preview looks like the real thing.
+  // Made-up times between 10:00 and 10:15pm UK time, so preview looks like the real thing.
   const ukHour = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", hour: "numeric", hourCycle: "h23" });
-  const threeAm = (date, min) => {
-    const asUtc = Date.parse(`${date}T03:${pad(min)}:00Z`);
-    const shift = Number(ukHour.format(asUtc)) - 3; // 0 in winter, 1 in summer
+  const tenPm = (date, min) => {
+    const asUtc = Date.parse(`${date}T22:${pad(min)}:00Z`);
+    const shift = Number(ukHour.format(asUtc)) - 22; // 0 in winter, 1 in summer
     return new Date(asUtc - shift * 3_600_000).toISOString();
   };
-  const at = (min) => threeAm(today, min);
-  const lastNight = (min) => threeAm(yesterday, min);
+  const at = (min) => tenPm(today, min);
+  const lastNight = (min) => tenPm(yesterday, min);
   return [
     { id: 1, night: today, created_at: at(1), body: "first time making it in. the countdown was more stressful than my mocks" },
     { id: 2, night: yesterday, created_at: lastNight(13), body: "If you're reading this you should probably go to sleep. I won't, but you should." },
     { id: 3, night: yesterday, created_at: lastNight(11), body: "the fox outside my window has been screaming for twenty minutes. is this normal" },
     { id: 4, night: yesterday, created_at: lastNight(9), body: "night shift at the hospital, on my break. hello to whoever's next" },
     { id: 5, night: yesterday, created_at: lastNight(4), body: "set an alarm specifically for this. worth it? jury's out" },
-    { id: 6, night: yesterday, created_at: lastNight(1), body: "jet lagged in Sydney, it's 2pm here. feels like cheating" },
+    { id: 6, night: yesterday, created_at: lastNight(1), body: "in Sydney, it's 9am here. having my breakfast with you lot" },
   ];
 }
 
