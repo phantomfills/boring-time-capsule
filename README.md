@@ -12,7 +12,7 @@ You'll need a free Supabase account. It takes about ten minutes.
 2. In the project, open the SQL Editor, paste in everything from `supabase/schema.sql`, and press Run. It should say "Success. No rows returned".
 3. Copy two things into `config.js`: the project URL (it's on the project's home page, and under Project Settings, then Data API) and the publishable key (Project Settings, then API Keys; older projects call it the `anon` key). This key is meant to be public. Don't ever use the `secret` or `service_role` key here.
 4. Commit and push `config.js`.
-5. On GitHub, open the repo's Settings, then Pages. Under "Build and deployment" choose "Deploy from a branch", pick `main` and `/ (root)`, and save. After a minute or so the site will be at `https://<your-username>.github.io/<repo-name>/`.
+5. GitHub Pages publishes the `gh-pages` branch, and a small workflow in `.github/workflows/publish.yml` copies `main` onto it every time you push. So just push to `main`, and a minute or so later the site at `https://phantomfills.github.io/boring-time-capsule/` updates.
 
 ## Trying it out without waiting until 10pm
 
