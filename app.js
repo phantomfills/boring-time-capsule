@@ -101,8 +101,6 @@ function setState(next) {
   document.body.dataset.state = next;
   $("closed").hidden = next !== "closed";
   $("open").hidden = next !== "open";
-  document.querySelector('meta[name="theme-color"]')
-    .setAttribute("content", next === "open" ? "#221836" : "#D7DCE1");
 
   if (next === "closed") {
     clearInterval(pollTimer);

@@ -1,17 +1,15 @@
-/* Two moods: a flat overcast day while the room is shut,
-   and a lamp-lit night room for the fifteen minutes it's open. */
+/* Dark all the time, because people visit at night.
+   Closed: the big clock is unlit. Open: it glows like a lamp. */
 :root {
-  --overcast: #D7DCE1;
-  --overcast-ink: #2E3946;
-  --overcast-soft: #56616E;
-  --overcast-sign: #A9B3BD;
+  color-scheme: dark;
 
-  --night: #221836;
-  --night-raised: #2E2347;
-  --night-line: #44386A;
-  --night-soft: #B1A5CC;
-  --paper: #F1E4C6;
-  --lamp: #FFC46B;
+  --bg: #1C1726;
+  --raised: #252033;
+  --line: #342D44;
+  --ink: #E6DCC6;
+  --soft: #958BA8;
+  --unlit: #3A3348;
+  --lamp: #EDB65C;
 
   --display: "Big Shoulders Display", "Arial Narrow", sans-serif;
   --text: "Atkinson Hyperlegible", system-ui, sans-serif;
@@ -19,100 +17,88 @@
 
 * { box-sizing: border-box; }
 
-html { -webkit-text-size-adjust: 100%; }
+html {
+  background: var(--bg);
+  -webkit-text-size-adjust: 100%;
+}
 
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--overcast);
-  color: var(--overcast-ink);
+  background: var(--bg);
+  color: var(--ink);
   font: 400 1.0625rem/1.6 var(--text);
-  transition: background-color 1.6s ease, color 1.6s ease;
-}
-
-body[data-state="open"] {
-  background: var(--night);
-  color: var(--paper);
 }
 
 main {
-  max-width: 40rem;
+  max-width: 36rem;
   margin: 0 auto;
-  padding: 1.75rem 1rem 5rem;
-}
-
-.name {
-  margin: 0 0 3rem;
-  font-weight: 700;
+  padding: 2rem 1rem 5rem;
 }
 
 p { margin: 0 0 1rem; }
 
-/* The one loud thing on the page: a huge clock face. */
+.name {
+  margin-bottom: 2.5rem;
+  color: var(--soft);
+}
+
+/* The clock: the only big thing on the page. */
 .giant {
-  margin: 0 0 1.75rem;
+  margin: 0 0 1.5rem;
   font-family: var(--display);
   font-weight: 900;
-  font-size: clamp(8rem, 46vw, 19rem);
+  font-size: clamp(7rem, 40vw, 16rem);
   line-height: 0.8;
-  letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
+  color: var(--unlit);
+  transition: color 1.2s ease;
 }
 
-.closed .giant { color: var(--overcast-sign); }
+.giant.long { font-size: clamp(5rem, 34vw, 12.5rem); }
 
 .open .giant {
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
   color: var(--lamp);
-  text-shadow: 0 0 2.5rem rgba(255, 196, 107, 0.35);
 }
-
-/* "4:59:59" has more digits than "10:00", so it's set a little smaller to fit. */
-.giant.long { font-size: clamp(5rem, 36vw, 14.5rem); }
 
 .left-label {
   margin-bottom: 2.5rem;
-  color: var(--night-soft);
+  color: var(--soft);
 }
 
-.lead {
-  font-size: 1.25rem;
-  line-height: 1.5;
-  max-width: 34rem;
-}
+.lead { font-size: 1.1875rem; }
 
-.yours { color: var(--overcast-soft); }
+.yours,
+.countdown { color: var(--soft); }
 
-.countdown {
-  margin-top: 2rem;
-  font-family: var(--display);
-  font-weight: 700;
-  font-size: 2rem;
-  line-height: 1.1;
-  font-variant-numeric: tabular-nums;
-}
+.countdown { font-variant-numeric: tabular-nums; }
 
-/* Form */
-.form { margin: 2.5rem 0 0.5rem; }
+/* Leaving a note */
+.form { margin: 2rem 0 0.25rem; }
 
-.form label {
-  display: block;
-  margin-bottom: 0.4rem;
-  font-weight: 700;
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 textarea {
   display: block;
   width: 100%;
   padding: 0.75rem 0.85rem;
-  border: 1px solid var(--night-line);
-  border-radius: 6px;
-  background: var(--night-raised);
-  color: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--raised);
+  color: var(--ink);
   font: inherit;
-  font-size: 1.125rem;
   resize: vertical;
 }
+
+textarea::placeholder { color: var(--soft); }
 
 textarea:focus-visible,
 button:focus-visible {
@@ -125,23 +111,23 @@ button:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-top: 0.75rem;
+  margin-top: 0.6rem;
 }
 
 .count {
-  color: var(--night-soft);
-  font-size: 0.9375rem;
+  color: var(--soft);
+  font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
 }
 
 .count.low { color: var(--lamp); }
 
 button {
-  padding: 0.65rem 1.2rem;
+  padding: 0.55rem 1.1rem;
   border: 0;
-  border-radius: 6px;
+  border-radius: 8px;
   background: var(--lamp);
-  color: var(--night);
+  color: var(--bg);
   font: inherit;
   font-weight: 700;
   cursor: pointer;
@@ -151,16 +137,15 @@ button:disabled { opacity: 0.6; cursor: wait; }
 
 .formmsg {
   min-height: 1.6em;
-  color: var(--lamp);
+  color: var(--soft);
 }
 
-/* The wall */
+/* The notes */
 .open h2 {
-  margin: 3rem 0 0.5rem;
-  font-family: var(--display);
+  margin: 2.5rem 0 0.25rem;
+  font-size: 1rem;
   font-weight: 700;
-  font-size: 2.25rem;
-  line-height: 1.1;
+  color: var(--soft);
 }
 
 .notes {
@@ -170,43 +155,37 @@ button:disabled { opacity: 0.6; cursor: wait; }
 }
 
 .notes li {
-  padding: 0.9rem 0;
-  border-top: 1px solid var(--night-line);
+  padding: 0.8rem 0;
+  border-bottom: 1px solid var(--line);
 }
-
-.notes li:last-child { border-bottom: 1px solid var(--night-line); }
 
 .notes .body {
   margin: 0;
-  font-size: 1.125rem;
   overflow-wrap: anywhere;
 }
 
 .notes time {
   display: block;
-  margin-top: 0.15rem;
-  color: var(--night-soft);
+  color: var(--soft);
   font-size: 0.875rem;
 }
 
 .notes li.mine .body::after {
   content: " (yours)";
-  color: var(--night-soft);
+  color: var(--soft);
   font-size: 0.875rem;
 }
 
-.empty { color: var(--night-soft); }
+.empty { color: var(--soft); }
 
 .notice {
   margin-top: 3rem;
-  padding: 0.85rem 1rem;
-  border-radius: 6px;
-  border: 1px dashed currentColor;
+  color: var(--soft);
   font-size: 0.9375rem;
 }
 
 [hidden] { display: none !important; }
 
 @media (prefers-reduced-motion: reduce) {
-  body { transition: none; }
+  .giant { transition: none; }
 }
