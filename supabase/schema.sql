@@ -13,7 +13,7 @@ create or replace function public.door_open_time()
 returns time language sql immutable as $$ select time '22:00' $$;
 
 create or replace function public.door_length()
-returns interval language sql immutable as $$ select interval '15 minutes' $$;
+returns interval language sql immutable as $$ select interval '5 hours' $$;
 
 
 -- Where the door stands at instant t: open or not, the current or next opening,
@@ -103,11 +103,11 @@ grant insert (body) on public.messages to anon, authenticated;
 grant execute on function public.door_status() to anon, authenticated;
 
 -- Notes can only be read while the door is open, and only the ones from the
--- last day (so tonight's and last night's).
+-- current night and the one before (so tonight's and last night's).
 drop policy if exists "read while open" on public.messages;
 create policy "read while open" on public.messages
   for select to anon, authenticated
-  using ((select public.is_open()) and created_at > now() - interval '25 hours');
+  using ((select public.is_open()) and night >= (select (public.door_status()->>'night')::date - 1));
 
 -- Notes can only be written while the door is open.
 drop policy if exists "write while open" on public.messages;

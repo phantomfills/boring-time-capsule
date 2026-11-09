@@ -41,9 +41,10 @@ function hms(ms) {
   return h > 0 ? `${h}:${pad(m)}:${pad(s % 60)}` : `${m}:${pad(s % 60)}`;
 }
 
-function mmss(ms) {
+// Time left while open: "4:59:59" with hours to go, "09:59" in the last hour.
+function timeLeft(ms) {
   const s = Math.max(0, Math.ceil(ms / 1000));
-  return `${pad(Math.floor(s / 60))}:${pad(s % 60)}`;
+  return s >= 3600 ? hms(ms) : `${pad(Math.floor(s / 60))}:${pad(s % 60)}`;
 }
 
 /* ---------- talking to the server ---------- */
@@ -55,7 +56,7 @@ async function fetchStatus() {
     return {
       open: true,
       opensAt: now - 45_000,
-      closesAt: now + 14 * 60_000 + 15_000,
+      closesAt: now + 4 * 3_600_000 + 12 * 60_000 + 15_000,
       night: londonDate.format(now),
     };
   }
@@ -147,7 +148,8 @@ function tick() {
 
   if (state === "open") {
     const ms = status.closesAt - now;
-    $("left").textContent = mmss(ms);
+    $("left").textContent = timeLeft(ms);
+    $("left").classList.toggle("long", ms > 3_600_000); // more digits, so a smaller size
     if (ms <= 0 && Date.now() - lastCheck > 2000) {
       if (PREVIEW) {
         status = { ...status, open: false, opensAt: status.opensAt + 86_400_000 };
@@ -305,7 +307,7 @@ function makePreviewNotes() {
   const now = Date.now();
   const today = londonDate.format(now);
   const yesterday = londonDate.format(now - 86_400_000);
-  // Made-up times between 10:00 and 10:15pm UK time, so preview looks like the real thing.
+  // Made-up times just after 10pm UK time, so preview looks like the real thing.
   const ukHour = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", hour: "numeric", hourCycle: "h23" });
   const tenPm = (date, min) => {
     const asUtc = Date.parse(`${date}T22:${pad(min)}:00Z`);

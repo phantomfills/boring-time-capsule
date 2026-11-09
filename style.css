@@ -67,6 +67,9 @@ p { margin: 0 0 1rem; }
   text-shadow: 0 0 2.5rem rgba(255, 196, 107, 0.35);
 }
 
+/* "4:59:59" has more digits than "10:00", so it's set a little smaller to fit. */
+.giant.long { font-size: clamp(5rem, 36vw, 14.5rem); }
+
 .left-label {
   margin-bottom: 2.5rem;
   color: var(--night-soft);

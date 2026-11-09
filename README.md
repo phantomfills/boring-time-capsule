@@ -1,6 +1,6 @@
 # The 10pm Room
 
-A website that's only open from 10:00 to 10:15pm, UK time. The rest of the day it shows a countdown. If you make it in, you can read the notes people left last night and leave one line for whoever turns up tomorrow.
+A website that's only open from 10pm to 3am, UK time. The rest of the day it shows a countdown. If you make it in, you can read the notes people left last night and leave one line for whoever turns up tomorrow.
 
 The page is plain HTML, CSS and JavaScript hosted on GitHub Pages. The notes live in a free Supabase database, and the opening hours are checked on Supabase's clock, not the visitor's, so changing your computer's time doesn't get you in early.
 
@@ -22,9 +22,9 @@ To test the real thing at another time of day, change `'22:00'` in the `door_ope
 
 ## How it decides whether you're in
 
-`door_status()` in the database works out whether it's currently between 10:00 and 10:15pm in London (it handles the clocks changing) and when the next opening is. The page asks for this when it loads, uses it to correct for your computer's clock being off, and then counts down by itself. When the countdown hits zero it asks again.
+`door_status()` in the database works out whether it's currently between 10pm and 3am in London (it handles the clocks changing) and when the next opening is. The page asks for this when it loads, uses it to correct for your computer's clock being off, and then counts down by itself. When the countdown hits zero it asks again.
 
-The database rules only allow reading notes while the room is open, and only notes from the last day. Writing is only allowed while it's open too. Each note is at most 140 characters, the same note can't be posted twice in a night, and there's a cap of 300 notes a night. The page also limits each browser to one note a night, but that's an honour system: someone determined could get round it.
+The database rules only allow reading notes while the room is open, and only notes from tonight and last night. Writing is only allowed while it's open too. Each note is at most 140 characters, the same note can't be posted twice in a night, and there's a cap of 300 notes a night. The page also limits each browser to one note a night, but that's an honour system: someone determined could get round it.
 
 ## Files
 
