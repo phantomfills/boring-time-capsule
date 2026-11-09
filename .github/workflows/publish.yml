@@ -1,0 +1,19 @@
+# GitHub Pages serves the site from the gh-pages branch. This copies main
+# onto gh-pages every time main changes, so you only ever need to push main.
+name: Publish to gh-pages
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: git push --force origin HEAD:gh-pages
