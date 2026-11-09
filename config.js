@@ -5,5 +5,5 @@
 // to be visible to everyone; the rules in supabase/schema.sql do the protecting.
 // Never put the "secret" or "service_role" key in this file.
 
-export const SUPABASE_URL = "https://YOUR-PROJECT.supabase.co";
-export const SUPABASE_KEY = "PASTE-YOUR-PUBLIC-KEY-HERE";
+export const SUPABASE_URL = "https://ekpkhcoljwujhvccmdqe.supabase.co";
+export const SUPABASE_KEY = "sb_publishable_qSLtS5sumcITe49Q9AFclQ_N0oDPysQ";
