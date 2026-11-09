@@ -37,8 +37,8 @@ If you set up the database before these were added, run `supabase/schema.sql` ag
 ## Files
 
 - `index.html` is the page itself.
-- `style.css` holds the two looks: a flat overcast day while closed, a lamp-lit room while open.
-- `app.js` does the countdown, loads the notes, and posts new ones.
+- `style.css` is the look: dark throughout, with the clock unlit while closed and lit while open.
+- `app.js` does the countdown, the notes, hearts and goodnights.
 - `config.js` is where your Supabase details go.
 - `supabase/schema.sql` sets up the database, the opening hours and the rules.
 
