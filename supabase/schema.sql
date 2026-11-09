@@ -65,6 +65,11 @@ create table if not exists public.messages (
   night      date not null
 );
 
+-- How many hearts each note has. (Added after the first version, hence the
+-- separate line, so running this file again upgrades an existing table.)
+alter table public.messages
+  add column if not exists hearts integer not null default 0 check (hearts >= 0);
+
 -- No posting the exact same note twice in one night.
 create unique index if not exists messages_once_per_night
   on public.messages (night, lower(body));
@@ -97,7 +102,7 @@ create trigger prepare_message
 alter table public.messages enable row level security;
 
 revoke all on public.messages from anon, authenticated;
-grant select (id, body, created_at, night) on public.messages to anon, authenticated;
+grant select (id, body, created_at, night, hearts) on public.messages to anon, authenticated;
 grant insert (body) on public.messages to anon, authenticated;
 
 grant execute on function public.door_status() to anon, authenticated;
@@ -114,3 +119,75 @@ drop policy if exists "write while open" on public.messages;
 create policy "write while open" on public.messages
   for insert to anon, authenticated
   with check ((select public.is_open()));
+
+
+-- Hearts. Visitors can't edit notes directly, so hearting goes through this
+-- function, which only changes the hearts count and only while the room is
+-- open. Pass hearted = true to add a heart and false to take one back.
+-- (One heart per visitor per note is kept by the page, on trust.)
+create or replace function public.heart_note(note_id bigint, hearted boolean)
+returns integer language plpgsql security definer set search_path = public as $$
+declare
+  st     json := public.door_status();
+  result integer;
+begin
+  if not (st->>'open')::boolean then
+    raise exception 'The room is closed.' using errcode = '42501';
+  end if;
+
+  update public.messages
+     set hearts = greatest(0, hearts + case when hearted then 1 else -1 end)
+   where id = note_id
+     and night >= (st->>'night')::date - 1
+  returning hearts into result;
+
+  if result is null then
+    raise exception 'That note is not here any more.' using errcode = 'P0002';
+  end if;
+  return result;
+end $$;
+
+revoke all on function public.heart_note(bigint, boolean) from public;
+grant execute on function public.heart_note(bigint, boolean) to anon, authenticated;
+
+
+-- "I'm going to bed". Each press is one row; everyone in the room sees a
+-- notification when a new one appears.
+create table if not exists public.goodnights (
+  id         bigint generated always as identity primary key,
+  created_at timestamptz not null default now(),
+  night      date not null
+);
+
+alter table public.goodnights enable row level security;
+revoke all on public.goodnights from anon, authenticated;
+grant select (id, created_at, night) on public.goodnights to anon, authenticated;
+
+-- Only tonight's goodnights can be seen, and only while the room is open.
+drop policy if exists "read tonight while open" on public.goodnights;
+create policy "read tonight while open" on public.goodnights
+  for select to anon, authenticated
+  using ((select public.is_open()) and night = (select (public.door_status()->>'night')::date));
+
+-- Saying goodnight goes through this function, which checks the room is open
+-- and stops at 1,000 a night. (One per visitor per night is kept by the page.)
+create or replace function public.say_goodnight()
+returns bigint language plpgsql security definer set search_path = public as $$
+declare
+  st     json := public.door_status();
+  tonight date := (st->>'night')::date;
+  new_id bigint;
+begin
+  if not (st->>'open')::boolean then
+    raise exception 'The room is closed.' using errcode = '42501';
+  end if;
+  if (select count(*) from public.goodnights where night = tonight) >= 1000 then
+    raise exception 'Too many goodnights tonight.' using errcode = 'P0001';
+  end if;
+
+  insert into public.goodnights (night) values (tonight) returning id into new_id;
+  return new_id;
+end $$;
+
+revoke all on function public.say_goodnight() from public;
+grant execute on function public.say_goodnight() to anon, authenticated;

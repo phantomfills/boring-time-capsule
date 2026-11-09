@@ -44,6 +44,12 @@
       </form>
       <p id="formmsg" class="formmsg" role="status"></p>
 
+      <div class="bed">
+        <button type="button" id="bed" class="quiet">I'm going to bed</button>
+        <p id="bed-done" class="bed-done" hidden>You said goodnight. Sleep well.</p>
+        <p id="bed-count" class="bed-count"></p>
+      </div>
+
       <h2>Tonight</h2>
       <ol id="tonight" class="notes"></ol>
       <p id="tonight-empty" class="empty">Nothing yet.</p>
@@ -55,5 +61,7 @@
 
     <p id="notice" class="notice" hidden></p>
   </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 </body>
 </html>

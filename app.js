@@ -4,14 +4,14 @@ import { SUPABASE_URL, SUPABASE_KEY } from "./config.js";
 const $ = (id) => document.getElementById(id);
 
 // ?preview shows the open room with made-up notes, at any time of day.
-// Nothing written in preview is saved anywhere.
+// Nothing done in preview is saved anywhere.
 const PREVIEW = new URLSearchParams(location.search).has("preview");
 const CONFIGURED = /^https:\/\//.test(SUPABASE_URL) && !SUPABASE_URL.includes("YOUR-PROJECT") && !SUPABASE_KEY.includes("PASTE");
 const db = CONFIGURED && !PREVIEW
   ? createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } })
   : null;
 
-const POLL_MS = 15_000;      // how often to fetch new notes while open
+const POLL_MS = 10_000;        // how often to check for new notes, hearts and goodnights while open
 const RESYNC_MS = 10 * 60_000; // how often to re-check the server clock while closed
 
 let offset = 0;          // server clock minus this computer's clock, in ms
@@ -20,9 +20,22 @@ let state = "loading";
 let pollTimer = null;
 let lastCheck = 0;
 let checking = false;
-let mine = new Set();    // ids of notes this visitor left, for the "(yours)" tag
+
+const mine = new Set();      // ids of notes this visitor left, for the "(yours)" tag
+const hearts = new Map();    // note id -> heart count, as last seen
+const items = new Map();     // note id -> its <li>, so updates don't rebuild the list
 
 const serverNow = () => Date.now() + offset;
+
+/* ---------- small storage helpers (browser storage can be blocked) ---------- */
+
+function load(key, fallback) {
+  try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
+}
+
+function save(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage blocked; fine */ }
+}
 
 /* ---------- time formatting ---------- */
 
@@ -113,11 +126,17 @@ function setState(next) {
   if (next === "open" && prev !== "open") {
     document.title = "The 10pm Room is open";
     updateForm();
-    loadNotes();
-    pollTimer = setInterval(loadNotes, POLL_MS);
+    updateBed();
+    poll();
+    pollTimer = setInterval(poll, POLL_MS);
   }
 
   tick();
+}
+
+function poll() {
+  loadNotes();
+  loadGoodnights();
 }
 
 // "Where you are, that's 10:00 pm." Left blank if it's the same as UK time.
@@ -170,7 +189,7 @@ async function loadNotes() {
   } else {
     const { data, error } = await db
       .from("messages")
-      .select("id, body, created_at, night")
+      .select("id, body, created_at, night, hearts")
       .order("created_at", { ascending: false })
       .limit(600);
     if (error) { console.error(error); return; }
@@ -186,21 +205,188 @@ function renderNotes(rows) {
   fillList($("lastnight"), before);
   $("tonight-empty").hidden = tonight.length > 0;
   $("lastnight-empty").hidden = before.length > 0;
+
+  // forget notes that have dropped off the wall
+  const shown = new Set(rows.map((r) => r.id));
+  for (const id of items.keys()) {
+    if (!shown.has(id)) { items.get(id).remove(); items.delete(id); }
+  }
 }
 
+// Puts the rows into the list in order, reusing existing items so a button
+// someone is about to press doesn't vanish and reappear under them.
 function fillList(list, rows) {
-  list.replaceChildren(...rows.map((r) => {
-    const li = document.createElement("li");
-    if (mine.has(r.id)) li.className = "mine";
-    const body = document.createElement("p");
-    body.className = "body";
-    body.textContent = r.body; // textContent, never innerHTML: notes are written by strangers
-    const time = document.createElement("time");
-    time.dateTime = r.created_at;
-    time.textContent = londonClock.format(new Date(r.created_at));
-    li.append(body, time);
-    return li;
-  }));
+  rows.forEach((r, i) => {
+    hearts.set(r.id, r.hearts ?? 0);
+    const li = items.get(r.id) ?? makeItem(r);
+    li.classList.toggle("mine", mine.has(r.id));
+    updateHeart(r.id);
+    if (list.children[i] !== li) list.insertBefore(li, list.children[i] ?? null);
+  });
+  while (list.children.length > rows.length) list.lastElementChild.remove();
+}
+
+function makeItem(r) {
+  const li = document.createElement("li");
+
+  const body = document.createElement("p");
+  body.className = "body";
+  body.textContent = r.body; // textContent, never innerHTML: notes are written by strangers
+
+  const meta = document.createElement("div");
+  meta.className = "meta";
+
+  const time = document.createElement("time");
+  time.dateTime = r.created_at;
+  time.textContent = londonClock.format(new Date(r.created_at));
+
+  const heart = document.createElement("button");
+  heart.type = "button";
+  heart.className = "heart";
+  heart.addEventListener("click", () => toggleHeart(r.id));
+
+  meta.append(time, heart);
+  li.append(body, meta);
+  items.set(r.id, li);
+  return li;
+}
+
+/* ---------- hearts ---------- */
+
+// Which notes this browser has hearted. One heart per note, kept on trust.
+const HEARTED_KEY = "ten-pm:hearted";
+const hearted = new Set(load(HEARTED_KEY, []));
+
+function updateHeart(id) {
+  const button = items.get(id)?.querySelector(".heart");
+  if (!button) return;
+  const on = hearted.has(id);
+  const count = hearts.get(id) ?? 0;
+  button.textContent = `${on ? "♥" : "♡"}${count > 0 ? ` ${count}` : ""}`;
+  button.setAttribute("aria-pressed", String(on));
+  button.setAttribute("aria-label", `${on ? "Remove your heart" : "Heart this note"} (${count} ${count === 1 ? "heart" : "hearts"})`);
+}
+
+function rememberHearted(id, on) {
+  if (on) hearted.add(id); else hearted.delete(id);
+  save(HEARTED_KEY, [...hearted].slice(-2000));
+}
+
+async function toggleHeart(id) {
+  const on = !hearted.has(id);
+  const before = hearts.get(id) ?? 0;
+
+  // Show it straight away, then confirm with the server.
+  rememberHearted(id, on);
+  hearts.set(id, Math.max(0, before + (on ? 1 : -1)));
+  updateHeart(id);
+
+  if (PREVIEW) {
+    const note = previewNotes.find((n) => n.id === id);
+    if (note) note.hearts = hearts.get(id);
+    return;
+  }
+
+  const { data, error } = await db.rpc("heart_note", { note_id: id, hearted: on });
+  if (error) {
+    console.error(error);
+    rememberHearted(id, !on);
+    hearts.set(id, before);
+    updateHeart(id);
+    showToast(error.code === "42501" ? "The room has closed, so that heart wasn't saved." : "That heart didn't go through. Try again.");
+    if (error.code === "42501") checkDoor();
+    return;
+  }
+  hearts.set(id, data);
+  updateHeart(id);
+}
+
+/* ---------- going to bed ---------- */
+
+const bedKey = () => `ten-pm:bed:${status.night}`;
+let seenGoodnights = null;   // highest goodnight id already shown, null until the first check
+const previewGoodnights = [];
+
+function saidGoodnight() {
+  return load(bedKey(), null) !== null;
+}
+
+function updateBed() {
+  const done = saidGoodnight();
+  $("bed").hidden = done;
+  $("bed-done").hidden = !done;
+}
+
+function showBedCount(n) {
+  $("bed-count").textContent =
+    n === 0 ? "" : n === 1 ? "1 person has gone to bed tonight." : `${n} people have gone to bed tonight.`;
+}
+
+async function loadGoodnights() {
+  let ids;
+  if (PREVIEW) {
+    ids = previewGoodnights;
+  } else {
+    const { data, error } = await db.from("goodnights").select("id").order("id");
+    if (error) { console.error(error); return; }
+    ids = data.map((g) => g.id);
+  }
+
+  showBedCount(ids.length);
+
+  // The first check only sets the starting point, so people arriving don't get
+  // a pile of goodnights from earlier in the evening.
+  const latest = ids.length ? ids[ids.length - 1] : 0;
+  if (seenGoodnights === null) { seenGoodnights = latest; return; }
+
+  const myId = load(bedKey(), null);
+  const fresh = ids.filter((id) => id > seenGoodnights && id !== myId).length;
+  seenGoodnights = Math.max(seenGoodnights, latest);
+
+  if (fresh === 1) showToast("Someone's going to bed. Goodnight.");
+  if (fresh > 1) showToast(`${fresh} people are going to bed. Goodnight.`);
+}
+
+$("bed").addEventListener("click", async () => {
+  $("bed").disabled = true;
+
+  let id;
+  if (PREVIEW) {
+    id = Date.now();
+    previewGoodnights.push(id);
+  } else {
+    const { data, error } = await db.rpc("say_goodnight");
+    if (error) {
+      console.error(error);
+      $("bed").disabled = false;
+      showToast(error.code === "42501" ? "The room has already closed." : "That didn't go through. Try again.");
+      if (error.code === "42501") checkDoor();
+      return;
+    }
+    id = data;
+  }
+
+  save(bedKey(), id);
+  $("bed").disabled = false;
+  updateBed();
+  showToast("Goodnight. Everyone here will see you've gone to bed.");
+  loadGoodnights();
+});
+
+/* ---------- notifications ---------- */
+
+let toastTimer = null;
+
+function showToast(text) {
+  const toast = $("toast");
+  toast.textContent = text;
+  toast.hidden = false;
+  requestAnimationFrame(() => toast.classList.add("shown"));
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.classList.remove("shown");
+    setTimeout(() => { toast.hidden = true; }, 400);
+  }, 6000);
 }
 
 /* ---------- leaving a note ---------- */
@@ -209,21 +395,11 @@ function fillList(list, rows) {
 // the server's own limits are in supabase/schema.sql.
 const postedKey = () => `ten-pm:posted:${status.night}`;
 
-function alreadyPosted() {
-  try { return localStorage.getItem(postedKey()) !== null; } catch { return false; }
-}
-
-function rememberPosted(id) {
-  try { localStorage.setItem(postedKey(), String(id ?? "")); } catch { /* storage blocked; fine */ }
-}
-
 function updateForm() {
-  try {
-    const id = Number(localStorage.getItem(postedKey()));
-    if (id) mine.add(id);
-  } catch { /* ignore */ }
+  const posted = load(postedKey(), null);
+  if (posted) mine.add(posted);
 
-  const done = alreadyPosted();
+  const done = posted !== null;
   $("form").hidden = done;
   if (done) setFormMessage("Your note is on the wall. Everyone gets one a night, so come back tomorrow.");
 }
@@ -234,7 +410,7 @@ function setFormMessage(text) {
 
 function explain(error) {
   switch (error.code) {
-    case "42501": return "The door shut before your note got through, so it wasn't saved.";
+    case "42501": return "The room closed before your note got through, so it wasn't saved.";
     case "23505": return "Someone already left exactly that tonight. Try saying it your own way.";
     case "23514": return "Notes need to be between 1 and 140 characters.";
     case "P0001": return error.message;
@@ -264,7 +440,7 @@ $("form").addEventListener("submit", async (event) => {
 
   if (PREVIEW) {
     id = Date.now();
-    previewNotes.unshift({ id, body, created_at: new Date().toISOString(), night: status.night });
+    previewNotes.unshift({ id, body, created_at: new Date().toISOString(), night: status.night, hearts: 0 });
   } else {
     // Ask for the new note's id back so it can be marked "(yours)" on the wall.
     let data;
@@ -282,7 +458,7 @@ $("form").addEventListener("submit", async (event) => {
   }
 
   if (id) mine.add(id);
-  rememberPosted(id);
+  save(postedKey(), id ?? 0);
   $("note").value = "";
   $("form").hidden = true;
   setFormMessage("Your note is on the wall. Everyone gets one a night, so come back tomorrow.");
@@ -315,20 +491,22 @@ function makePreviewNotes() {
   const at = (min) => tenPm(today, min);
   const lastNight = (min) => tenPm(yesterday, min);
   return [
-    { id: 1, night: today, created_at: at(1), body: "first time making it in. the countdown was more stressful than my mocks" },
-    { id: 2, night: yesterday, created_at: lastNight(13), body: "If you're reading this you should probably go to sleep. I won't, but you should." },
-    { id: 3, night: yesterday, created_at: lastNight(11), body: "the fox outside my window has been screaming for twenty minutes. is this normal" },
-    { id: 4, night: yesterday, created_at: lastNight(9), body: "night shift at the hospital, on my break. hello to whoever's next" },
-    { id: 5, night: yesterday, created_at: lastNight(4), body: "set an alarm specifically for this. worth it? jury's out" },
-    { id: 6, night: yesterday, created_at: lastNight(1), body: "in Sydney, it's 9am here. having my breakfast with you lot" },
+    { id: 1, night: today, created_at: at(1), hearts: 0, body: "first time making it in. the countdown was more stressful than my mocks" },
+    { id: 2, night: yesterday, created_at: lastNight(53), hearts: 4, body: "If you're reading this you should probably go to sleep. I won't, but you should." },
+    { id: 3, night: yesterday, created_at: lastNight(41), hearts: 2, body: "the fox outside my window has been screaming for twenty minutes. is this normal" },
+    { id: 4, night: yesterday, created_at: lastNight(29), hearts: 7, body: "night shift at the hospital, on my break. hello to whoever's next" },
+    { id: 5, night: yesterday, created_at: lastNight(14), hearts: 0, body: "set an alarm specifically for this. worth it? jury's out" },
+    { id: 6, night: yesterday, created_at: lastNight(2), hearts: 1, body: "in Sydney, it's 9am here. having my breakfast with you lot" },
   ];
 }
 
 /* ---------- start ---------- */
 
 if (PREVIEW) {
-  showNotice("Preview. The room isn't really open, and notes you leave here aren't saved. Remove ?preview from the address to see the real thing.");
+  showNotice("Preview. The room isn't really open, and nothing you do here is saved. Remove ?preview from the address to see the real thing.");
   checkDoor();
+  // Pretend someone else heads to bed a few seconds in, so the notification can be seen.
+  setTimeout(() => { previewGoodnights.push(1); loadGoodnights(); }, 6000);
 } else if (!CONFIGURED) {
   document.body.dataset.state = "closed";
   $("closed").hidden = false;

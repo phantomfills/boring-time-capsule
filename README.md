@@ -26,6 +26,14 @@ To test the real thing at another time of day, change `'22:00'` in the `door_ope
 
 The database rules only allow reading notes while the room is open, and only notes from tonight and last night. Writing is only allowed while it's open too. Each note is at most 140 characters, the same note can't be posted twice in a night, and there's a cap of 300 notes a night. The page also limits each browser to one note a night, but that's an honour system: someone determined could get round it.
 
+## Hearts and going to bed
+
+Each note has a heart button. Press it again to take your heart back. Hearts go through the `heart_note` function in the database, which only changes the count and only while the room is open. The page keeps track of which notes you've hearted, so it's one heart per note per browser, on trust.
+
+The "I'm going to bed" button can be pressed once a night. Everyone else in the room sees a small notification at the bottom of the screen within about ten seconds, and the page shows how many people have gone to bed so far that night.
+
+If you set up the database before these were added, run `supabase/schema.sql` again. It upgrades the existing table without losing any notes.
+
 ## Files
 
 - `index.html` is the page itself.

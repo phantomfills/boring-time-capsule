@@ -140,6 +140,51 @@ button:disabled { opacity: 0.6; cursor: wait; }
   color: var(--soft);
 }
 
+/* Going to bed */
+.bed { margin-top: 1.5rem; }
+
+button.quiet {
+  border: 1px solid var(--line);
+  background: none;
+  color: var(--ink);
+  font-weight: 400;
+}
+
+button.quiet:hover { border-color: var(--soft); }
+
+.bed-done { margin: 0; }
+
+.bed-count {
+  margin: 0.5rem 0 0;
+  color: var(--soft);
+  font-size: 0.9375rem;
+}
+
+.bed-count:empty { display: none; }
+
+/* The notification at the bottom of the screen */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 1.25rem;
+  width: max-content;
+  max-width: calc(100% - 2rem);
+  padding: 0.75rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--raised);
+  color: var(--ink);
+  box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.4);
+  transform: translate(-50%, 0.5rem);
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.toast.shown {
+  transform: translate(-50%, 0);
+  opacity: 1;
+}
+
 /* The notes */
 .open h2 {
   margin: 2.5rem 0 0.25rem;
@@ -164,11 +209,34 @@ button:disabled { opacity: 0.6; cursor: wait; }
   overflow-wrap: anywhere;
 }
 
+.notes .meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.1rem;
+}
+
 .notes time {
-  display: block;
   color: var(--soft);
   font-size: 0.875rem;
 }
+
+/* Hearts: a quiet outline until you press it, then lamp-coloured. */
+.heart {
+  min-width: 2.75rem;
+  min-height: 2rem;
+  padding: 0.15rem 0.5rem;
+  background: none;
+  color: var(--soft);
+  font-weight: 400;
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.heart:hover { color: var(--ink); }
+.heart[aria-pressed="true"] { color: var(--lamp); }
 
 .notes li.mine .body::after {
   content: " (yours)";
@@ -187,5 +255,5 @@ button:disabled { opacity: 0.6; cursor: wait; }
 [hidden] { display: none !important; }
 
 @media (prefers-reduced-motion: reduce) {
-  .giant { transition: none; }
+  .giant, .toast { transition: none; }
 }
