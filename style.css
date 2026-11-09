@@ -1,0 +1,209 @@
+/* Two moods: a flat overcast day while the room is shut,
+   and a lamp-lit night room for the fifteen minutes it's open. */
+:root {
+  --overcast: #D7DCE1;
+  --overcast-ink: #2E3946;
+  --overcast-soft: #56616E;
+  --overcast-sign: #A9B3BD;
+
+  --night: #221836;
+  --night-raised: #2E2347;
+  --night-line: #44386A;
+  --night-soft: #B1A5CC;
+  --paper: #F1E4C6;
+  --lamp: #FFC46B;
+
+  --display: "Big Shoulders Display", "Arial Narrow", sans-serif;
+  --text: "Atkinson Hyperlegible", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--overcast);
+  color: var(--overcast-ink);
+  font: 400 1.0625rem/1.6 var(--text);
+  transition: background-color 1.6s ease, color 1.6s ease;
+}
+
+body[data-state="open"] {
+  background: var(--night);
+  color: var(--paper);
+}
+
+main {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 1.75rem 1rem 5rem;
+}
+
+.name {
+  margin: 0 0 3rem;
+  font-weight: 700;
+}
+
+p { margin: 0 0 1rem; }
+
+/* The one loud thing on the page: a huge clock face. */
+.giant {
+  margin: 0 0 1.75rem;
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: clamp(8rem, 46vw, 19rem);
+  line-height: 0.8;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.closed .giant { color: var(--overcast-sign); }
+
+.open .giant {
+  margin-bottom: 0.25rem;
+  color: var(--lamp);
+  text-shadow: 0 0 2.5rem rgba(255, 196, 107, 0.35);
+}
+
+.left-label {
+  margin-bottom: 2.5rem;
+  color: var(--night-soft);
+}
+
+.lead {
+  font-size: 1.25rem;
+  line-height: 1.5;
+  max-width: 34rem;
+}
+
+.yours { color: var(--overcast-soft); }
+
+.countdown {
+  margin-top: 2rem;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 2rem;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Form */
+.form { margin: 2.5rem 0 0.5rem; }
+
+.form label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-weight: 700;
+}
+
+textarea {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--night-line);
+  border-radius: 6px;
+  background: var(--night-raised);
+  color: var(--paper);
+  font: inherit;
+  font-size: 1.125rem;
+  resize: vertical;
+}
+
+textarea:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--lamp);
+  outline-offset: 2px;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.count {
+  color: var(--night-soft);
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.count.low { color: var(--lamp); }
+
+button {
+  padding: 0.65rem 1.2rem;
+  border: 0;
+  border-radius: 6px;
+  background: var(--lamp);
+  color: var(--night);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:disabled { opacity: 0.6; cursor: wait; }
+
+.formmsg {
+  min-height: 1.6em;
+  color: var(--lamp);
+}
+
+/* The wall */
+.open h2 {
+  margin: 3rem 0 0.5rem;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 2.25rem;
+  line-height: 1.1;
+}
+
+.notes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notes li {
+  padding: 0.9rem 0;
+  border-top: 1px solid var(--night-line);
+}
+
+.notes li:last-child { border-bottom: 1px solid var(--night-line); }
+
+.notes .body {
+  margin: 0;
+  font-size: 1.125rem;
+  overflow-wrap: anywhere;
+}
+
+.notes time {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--night-soft);
+  font-size: 0.875rem;
+}
+
+.notes li.mine .body::after {
+  content: " (yours)";
+  color: var(--night-soft);
+  font-size: 0.875rem;
+}
+
+.empty { color: var(--night-soft); }
+
+.notice {
+  margin-top: 3rem;
+  padding: 0.85rem 1rem;
+  border-radius: 6px;
+  border: 1px dashed currentColor;
+  font-size: 0.9375rem;
+}
+
+[hidden] { display: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  body { transition: none; }
+}
